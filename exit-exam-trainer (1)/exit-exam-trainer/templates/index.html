@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exit Exam Trainer</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-set-size="{{ set_size }}" data-exam-seconds="{{ exam_seconds }}">
+
+<header class="bar" id="topbar">
+  <div class="bar-left">
+    <button class="icon-btn" id="btn-home" title="Back to setup (Esc)">&#8592;</button>
+    <span class="wordmark">EXIT&nbsp;EXAM<span class="wordmark-sub">trainer</span></span>
+  </div>
+  <div class="bar-mid">
+    <span class="readout" id="readout">—</span>
+    <span class="readout-label" id="readout-label">no set loaded</span>
+  </div>
+  <div class="bar-right">
+    <span class="readout" id="timer" hidden>00:00</span>
+    <span class="tally"><b id="tally-right">0</b> <span id="label-right">right</span></span>
+    <span class="tally"><b id="tally-wrong">0</b> <span id="label-wrong">wrong</span></span>
+  </div>
+</header>
+
+<!-- ================= SETUP ================= -->
+<main id="screen-setup" class="screen">
+  <section class="hero">
+    <p class="eyebrow">Merchant Navy &middot; CDC computer based test</p>
+    <h1>Work the bank.</h1>
+    <p class="lede">
+      <b id="bank-count">—</b> questions, split into sets of {{ set_size }}.
+      Answer with the number keys, move on with Enter. Everything is stored on
+      this computer.
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">Mode</h2>
+    <div class="modes" id="mode-picker">
+      <button class="mode is-on" data-mode="practice">
+        <span class="mode-name">Practice</span>
+        <span class="mode-note">Marks each answer as you go</span>
+      </button>
+      <button class="mode" data-mode="exam">
+        <span class="mode-name">Exam</span>
+        <span class="mode-note">Timed, score at the end</span>
+      </button>
+      <button class="mode" data-mode="flashcard">
+        <span class="mode-name">Flashcard</span>
+        <span class="mode-note">Question, then reveal</span>
+      </button>
+      <button class="mode" data-mode="revision">
+        <span class="mode-name">Revision</span>
+        <span class="mode-note">Only what you got wrong</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">Which questions</h2>
+    <div class="grid">
+      <label class="field">
+        <span>Subject</span>
+        <select id="f-topic"><option value="">All subjects</option></select>
+      </label>
+      <label class="field">
+        <span>Show</span>
+        <select id="f-filter">
+          <option value="all">Everything</option>
+          <option value="unattempted">Not yet attempted</option>
+          <option value="wrong">Previously wrong</option>
+          <option value="bookmarked">Bookmarked</option>
+          <option value="attempted">Already attempted</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Set</span>
+        <select id="f-set"></select>
+      </label>
+      <label class="field field-wide">
+        <span>Search question or answer</span>
+        <input type="search" id="f-search" placeholder="e.g. enclosed space, MARPOL, gyro">
+      </label>
+    </div>
+    <div class="toggles">
+      <label class="check"><input type="checkbox" id="f-shuffle-q"> Shuffle questions</label>
+      <label class="check"><input type="checkbox" id="f-shuffle-o" checked> Shuffle options</label>
+      <span class="match-count" id="match-count"></span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-start">Start</button>
+      <button class="btn" id="btn-resume" hidden>Resume last session</button>
+      <button class="btn btn-quiet" id="btn-stats">Statistics</button>
+      <button class="btn btn-quiet" id="btn-import">Import questions</button>
+    </div>
+  </section>
+</main>
+
+<!-- ================= QUIZ ================= -->
+<main id="screen-quiz" class="screen" hidden>
+  <div class="progress-rail"><div class="progress-fill" id="progress-fill"></div></div>
+
+  <article class="card">
+    <div class="card-head">
+      <span class="chip" id="q-topic">General</span>
+      <button class="chip chip-btn" id="btn-bookmark" title="Bookmark (B)">&#9734; Bookmark</button>
+    </div>
+    <p class="question" id="q-text">Loading…</p>
+
+    <ol class="options" id="options"></ol>
+
+    <div class="verdict" id="verdict" hidden>
+      <p class="verdict-line" id="verdict-line"></p>
+      <p class="verdict-answer" id="verdict-answer"></p>
+      <p class="verdict-note" id="verdict-note" hidden></p>
+    </div>
+  </article>
+
+  <nav class="controls">
+    <button class="btn btn-quiet" id="btn-prev">Previous</button>
+    <button class="btn btn-quiet" id="btn-skip">Skip</button>
+    <button class="btn btn-quiet" id="btn-reveal">Reveal answer</button>
+    <button class="btn btn-primary" id="btn-next">Next</button>
+    <button class="btn btn-finish" id="btn-submit">Submit set</button>
+  </nav>
+
+  <p class="keyhint">
+    <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> answer ·
+    <kbd>Enter</kbd> next · <kbd>Backspace</kbd> back ·
+    <kbd>Space</kbd> reveal · <kbd>B</kbd> bookmark · <kbd>Esc</kbd> exit
+  </p>
+</main>
+
+<!-- ================= RESULT ================= -->
+<main id="screen-result" class="screen" hidden>
+  <section class="hero">
+    <p class="eyebrow">Set complete</p>
+    <h1><span id="r-score">0</span><span class="of">/<span id="r-total">0</span></span></h1>
+    <p class="lede">
+      <b id="r-acc">0%</b> accuracy · <b id="r-time">0s</b> average per question ·
+      <b id="r-skip">0</b> skipped
+    </p>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-next-set">Next set</button>
+      <button class="btn" id="btn-review-wrong">Review the wrong ones</button>
+      <button class="btn btn-quiet" id="btn-result-home">Back to setup</button>
+    </div>
+  </section>
+  <section class="panel" id="r-list-wrap">
+    <h2 class="panel-title">What you missed</h2>
+    <ul class="review" id="r-list"></ul>
+  </section>
+</main>
+
+<!-- ================= STATS ================= -->
+<main id="screen-stats" class="screen" hidden>
+  <section class="hero">
+    <p class="eyebrow">Performance</p>
+    <h1>Where you stand</h1>
+  </section>
+
+  <section class="panel">
+    <div class="stat-grid" id="stat-grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">Accuracy by subject</h2>
+    <table class="table" id="topic-table">
+      <thead><tr><th>Subject</th><th>Questions</th><th>Attempts</th>
+      <th>Correct</th><th>Wrong</th><th>Accuracy</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel no-print">
+    <h2 class="panel-title">Export</h2>
+    <div class="actions">
+      <a class="btn" href="/api/export/report.csv">Report (CSV)</a>
+      <a class="btn" href="/api/export/report.xlsx">Report (Excel)</a>
+      <a class="btn" href="/api/export/wrong.csv">Wrong questions (CSV)</a>
+      <a class="btn" href="/api/export/bookmarks.csv">Bookmarks (CSV)</a>
+      <button class="btn" id="btn-print">Save as PDF</button>
+      <button class="btn btn-danger" id="btn-reset">Reset all progress</button>
+    </div>
+    <div class="actions">
+      <button class="btn btn-quiet" id="btn-stats-home">Back to setup</button>
+    </div>
+  </section>
+</main>
+
+<!-- ================= IMPORT ================= -->
+<main id="screen-import" class="screen" hidden>
+  <section class="hero">
+    <p class="eyebrow">Question bank</p>
+    <h1>Add more questions</h1>
+    <p class="lede">
+      CSV, Excel, JSON or a plain text file with each question followed by its
+      answer. Questions already in the bank are skipped, so you can re-import
+      the same file safely.
+    </p>
+  </section>
+  <section class="panel">
+    <input type="file" id="import-file" accept=".csv,.xlsx,.xls,.json,.txt">
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-do-import">Import file</button>
+      <button class="btn btn-quiet" id="btn-import-home">Back to setup</button>
+    </div>
+    <p class="note" id="import-note"></p>
+  </section>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
